@@ -1,131 +1,123 @@
 const express = require('express'),
   http = require('http');
+const socketio = require('socket.io')
+const cors = require('cors');
+
+const expressLayouts = require('express-ejs-layouts');
+const mongoose = require('mongoose');
+const flash = require('connect-flash');
+const session = require('express-session');
+const passport = require('passport');
+const path = require('path');
+
+const PORT = process.env.PORT || 4000;
+
 const app = express();
 const server = http.createServer(app);
-const io = require('socket.io').listen(server);
+const io = socketio(server, {
+  pingTimeout: 30000
+});
 
-const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+// Passport config
+require('./config/passport')(passport);
 
-const PORT = 3000;
+// DB Config
+const db = require('./config/keys').MongoURI;
 
-require('dotenv').config();
+//Connect to Mongo
+mongoose
+  .connect(db, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB Connected...'))
+  .catch(e => console.log(e));
 
+//EJS
+app.use(expressLayouts);
+app.use(cors());
+app.set('view engine', 'ejs');
+app.use(express.static(path.join(__dirname, 'views')));
 
-const dbUrl = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}$@cluster0-xrruv.mongodb.net/chat-app?retryWrites=true&w=majority`;
+//Bodyparser
+app.use(express.urlencoded({ extended: true }));
 
-mongoose.connect(
-  dbUrl,
-  { useNewUrlParser: true, useUnifiedTopology: true },
-  err => {
-    console.log('mongodb connected', err);
-  }
+//Express Session
+app.use(
+  session({
+    secret: 'mysecret',
+    resave: true,
+    saveUninitialized: true
+  })
 );
 
-const messageSchema = Schema({
-  message: String,
-  from: { type: Schema.Types.ObjectId, ref: 'User' },
-  to: { type: Schema.Types.ObjectId, ref: 'User' },
-  time: String,
+//Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+//Connect flash
+app.use(flash());
+
+//Global Vars
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash('success_msg');
+  res.locals.error_msg = req.flash('error_msg');
+  res.locals.error = req.flash('error');
+  next();
 });
 
-const userSchema = Schema({
-  name: String,
-  messages: {
-    type: Map,
-    of: [{ type: Schema.Types.ObjectId, ref: 'Message' }]
-  }
-});
+app.use(express.json());
 
-const Message = mongoose.model('Message', messageSchema);
-const User = mongoose.model('User', userSchema);
-
+//Routes
 app
-  .use(express.static(__dirname))
-  .use(bodyParser.json())
-  .use(bodyParser.urlencoded({ extended: false }));
+  .use('/messages', require('./routes/messages'))
+  .use('/', require('./routes/index'))
+  .use('/users', require('./routes/users'));
 
-app.get('/messages', async (req, res) => {
-  // const payload = await Message.find({}, (err, messages) => {
-  // }).populate('to');
+app.use(cors());
 
-  Message.find({}, (err, messages) => {
-    res.send(messages);
-  });
-});
+io.on('connect', socket => {
+  console.log('New connection established');
+//   socket.on('join', ({ name, room }, callback) => {
+//     const { error, user } = addUser({ id: socket.id, name, room });
+//     if (error) return callback(error);
 
+//     socket.emit('message', {
+//       user: 'admin',
+//       text: `${user.name}, welcome to the room ${user.room}`
+//     });
 
+//     socket.broadcast
+//       .to(user.room)
+//       .emit('message', { user: 'admin', text: `${user.name} has joined!` });
 
-io.engine.generateId = (req) => {
-  return '5e6be9b10c023e2256e75865'; // custom id must be unique
-}
+//     socket.join(user.room);
 
+//     io.to(user.room).emit('roomData', {
+//       room: user.room,
+//       users: getUsersInRoom(user.room)
+//     });
 
-app.post('/messages', async (req, res) => {
+//     callback();
+//   });
 
-  let user1 = await User.findOne({ name: 'Joe' });
-  let user2 = await User.findOne({ name: 'Bruce' });
+//   socket.on('sendMessage', (message, callback) => {
+//     const user = getUser(socket.id);
+//     io.to(user.room).emit('message', { user: user.name, text: message });
+//     callback();
+//   });
 
-  if (!user1&&!user2) {
-    user1 = new User({name: 'Alex', messages: {}});
-    user2 = new User({name: 'Bruce', messages: {}});
-    await user1.save();
-    await user2.save();
-  }
+//   socket.on('disconnect', () => {
+//     const user = removeUser(socket.id);
+//     if (user) {
+//       io.to(user.room).emit('message', {
+//         user: 'admin',
+//         text: `${user.name} has left!`
+//       });
+//       io.to(user.room).emit('roomData', {
+//         room: user.room,
+//         users: getUsersInRoom(user.room)
+//       });
+//     }
+//   });
+ }
+);
 
-  const message = new Message({
-    message: req.body.message,
-    to: user2._id,
-    from: user1._id,
-    time: req.body.time
-  });
-
-  const promise1 = new Promise((res, rej) => {
-    //when no convertsation is started with a new user, we must create a new map and pass it an empty array
-    if (!user1.messages.get([user2._id].toString())) {
-      user1.messages.set([user2._id].toString(), []);
-    }
-
-    if (user1.messages.get([user2._id].toString()).length === 0 ) {
-      user1.messages.set([user2._id].toString(), [message])
-    } else {
-      user1.messages.set([user2._id].toString(), [...user1.messages.get([user2._id].toString()), message])
-    }
-    res(user1.save());
-  });
-
-  const promise2 = new Promise((res, rej) => {
-    if (!user2.messages.get([user1._id].toString())) {
-      user2.messages.set([user1._id].toString(), []);
-    }
-    if (user2.messages.get([user1._id].toString()).length === 0 ) {
-      user2.messages.set([user1._id].toString(), [message])
-    } else {
-      user2.messages.set([user1._id].toString(), [...user2.messages.get([user1._id].toString()), message])
-    }
-    res(user2.save());
-  });
-
-  const promise3 = new Promise((res, rej) => {
-    res(message.save());
-  });
-
-  Promise.all([promise1, promise2, promise3]).then(data => {
-    if (!data) {
-      res.status(500).end('No name!');
-    } else {
-      io.to(user2._id.toString()).emit('private message', req.body);
-      res.sendStatus(200);
-    }
-  });
-});
-
-
-io.on('connection', (socket) => {
-  console.log('a user is connected', socket.id);
-});
-
-server.listen(PORT, () => {
-  console.log('server is running on port');
-});
+server.listen(PORT, console.log(`Server started on port ${PORT}`));
