@@ -20,4 +20,7 @@ router.post('/login', userController.login);
 //Logout
 router.get('/logout', userController.logout);
 
+//New thread
+router.post('/new-thread', userController.postNewThread);
+
 module.exports = router;

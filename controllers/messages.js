@@ -1,6 +1,5 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
-const uniqueString = require('unique-string');
 
 module.exports = {
   getAll: (req, res) => {
@@ -9,42 +8,33 @@ module.exports = {
     });
   },
   postMessage: async (req, res) => {
-    const { data, recId } = req.body;
+    const { message, recipientId, senderId } = req.body;
 
-    let user1 = req.user;
-    let user2 = await User.findOne({ name: 'Pawel' });
-    let uniqStr;
+    let sender = await User.findById(senderId);
+    let recipient = await User.findById(recipientId);
 
-    const message = new Message({ ...data, from: user1._id, to: user2._id });
+    const newMessage = new Message({
+      ...message,
+      from: sender._id,
+      to: recipient._id
+    });
 
-    const thread = [...user1.messages.keys()];
+    let mapContent = sender.messages.get(recipient._id.toString());
+    let messageHistory = sender.messages.get(recipient._id.toString())
+      .messageHistory;
+    mapContent.messageHistory = [...messageHistory, newMessage];
 
-    if (!thread.includes(user2._id.toString())) {
-      uniqStr = uniqueString();
-      user1.messages.set(user2._id.toString(), {
-        roomId: uniqStr,
-        messageHistory: []
-      });
-      user2.messages.set(user1._id.toString(), {
-        roomId: uniqStr,
-        messageHistory: []
-      });
-    }
-    let mapContent = user1.messages.get(user2._id.toString());
-    let messageHistory = user1.messages.get(user2._id.toString()).messageHistory;
-    mapContent.messageHistory = [...messageHistory, message];
-
-    user1.messages.set(user2._id.toString(), mapContent);
-    user2.messages.set(user1._id.toString(), mapContent);
+    sender.messages.set(recipient._id.toString(), mapContent);
+    recipient.messages.set(sender._id.toString(), mapContent);
 
     try {
-      user1.save();
-      user2.save();
-      message.save();
+      sender.save();
+      recipient.save();
+      newMessage.save();
     } catch {
       res.status(500).end('Server error!');
     } finally {
-      res.status(201).send(data);
+      res.status(201).send(message);
     }
   }
 };

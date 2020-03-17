@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Message = require('../models/Message');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
+const uniqueString = require('unique-string');
 
 module.exports = {
   greet: (req, res) => {
@@ -9,6 +10,28 @@ module.exports = {
   },
   getRegister: (req, res) => {
     res.render('register');
+  },
+  postNewThread: async (req, res) => {
+    const { recipientId, senderId } = req.body;
+    const recipient = await User.findById(recipientId);
+    const sender = await User.findById(senderId);
+    const uniqStr = await uniqueString();
+    const history = {
+      roomId: uniqStr,
+      messageHistory: []
+    };
+
+    recipient.messages.set(senderId, history);
+    sender.messages.set(recipientId, history);
+
+    try {
+      recipient.save();
+      sender.save();
+    } catch {
+      res.status(500).send('Server error');
+    } finally {
+      res.status(201).send(history);
+    }
   },
   findById: async (req, res) => {
     const { from, to } = req.query;

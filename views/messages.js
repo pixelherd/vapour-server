@@ -26,7 +26,6 @@ function addMessages(message) {
 }
 
 function getMessages() {
-  console.log('hi')
   fetch(
     'http://localhost:4000/messages',
     {mode: 'cors'}

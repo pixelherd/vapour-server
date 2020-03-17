@@ -75,18 +75,18 @@ app.use(express.json());
 io.on('connect', socket => {
   console.log('New connection established');
   socket.on('join', (name, room, callback) => {
-    console.log(name,room)
+    
     const { error, user } = addUser({ id: socket.id, name, room });
     if (error) return callback(error);
 
-    socket.emit('message', {
-      user: 'admin',
-      text: `${name}, welcome to the room ${room}`
-    });
+    // socket.emit('message', {
+    //   name: 'admin',
+    //   message: `${name}, welcome to the room ${room}`
+    // });
 
-    socket.broadcast
-      .to(room)
-      .emit('message', { user: 'admin', text: `${name} has joined!` });
+    // socket.broadcast
+    //   .to(room)
+    //   .emit('message', { name: 'admin', text: `${name} has joined!` });
 
     socket.join(room);
 
@@ -99,10 +99,8 @@ io.on('connect', socket => {
   });
 
   socket.on('sendMessage', ({message, roomid}, callback) => {
-    console.log(message);
     const user = getUser(socket.id);
-
-    io.to(roomid).emit('message', { user: user.name, text: message });
+    io.to(roomid).emit('message', { name: user.name, message: message });
     callback();
   });
 
