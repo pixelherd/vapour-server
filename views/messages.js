@@ -7,7 +7,11 @@ $(() => {
       message: $('#message').val(),
       time: moment().format('hh:mm')
     };
-    await sendMessage('https://whispering-ocean-93586.herokuapp.com/messages', msgBody, recId).then(() => addMessages(msgBody));
+    await sendMessage(
+      'https://whispering-ocean-93586.herokuapp.com/messages',
+      msgBody,
+      recId
+    ).then(() => addMessages(msgBody));
     $('#message').val('');
   });
   getMessages();
@@ -22,7 +26,11 @@ function addMessages(message) {
 }
 
 function getMessages() {
-  fetch('https://whispering-ocean-93586.herokuapp.com/messages')
+  console.log('hi')
+  fetch(
+    'https://whispering-ocean-93586.herokuapp.com/messages',
+    {mode: 'cors'}
+  )
     .then(res => {
       return res.json();
     })
@@ -40,7 +48,7 @@ async function sendMessage(url, data, recId) {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({data, recId})
+    body: JSON.stringify({ data, recId })
   });
   return response.json();
 }

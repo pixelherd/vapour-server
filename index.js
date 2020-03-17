@@ -1,6 +1,6 @@
 const express = require('express'),
   http = require('http');
-const socketio = require('socket.io')
+const socketio = require('socket.io');
 const cors = require('cors');
 
 const expressLayouts = require('express-ejs-layouts');
@@ -10,7 +10,12 @@ const session = require('express-session');
 const passport = require('passport');
 const path = require('path');
 
-const { addUser, removeUser, getUser, getUsersInRoom } = require('./util/users');
+const {
+  addUser,
+  removeUser,
+  getUser,
+  getUsersInRoom
+} = require('./util/users');
 
 const PORT = process.env.PORT || 4000;
 
@@ -66,19 +71,10 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-app.use(cors());
-
-//Routes
-app
-  .use('/messages', require('./routes/messages'))
-  .use('/users', require('./routes/users'))
-  .use('/', require('./routes/index'))
-
 
 io.on('connect', socket => {
   console.log('New connection established');
-  socket.on('join', ( name, room , callback) => {
-    
+  socket.on('join', (name, room, callback) => {
     const { error, user } = addUser({ id: socket.id, name, room });
     if (error) return callback(error);
 
@@ -120,7 +116,12 @@ io.on('connect', socket => {
       });
     }
   });
- }
-);
+});
+
+//Routes
+app
+  .use('/messages', require('./routes/messages'))
+  .use('/users', require('./routes/users'))
+  .use('/', require('./routes/index'));
 
 server.listen(PORT, console.log(`Server started on port ${PORT}`));
