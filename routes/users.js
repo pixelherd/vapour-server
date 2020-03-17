@@ -3,6 +3,9 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
+const jwt = require('jsonwebtoken');
+const keys = require('../config/keys');
+const cors = require('cors');
 
 //Login Page
 router.get('/login', (req, res) => res.render('login'))
@@ -26,22 +29,14 @@ router.post('/register', (req, res) => {
     errors.push({ msg: 'Password should be at least 6 characters' });
   }
 
-  if (errors.length > 0) {
-    res.render('register', {
-      errors,
-      name,
-      email,
-      password,
-      password2
-    });
+  if (errors.length > 0) { 
+    res.status(400).json({errors: errors});
   } else {
     User.findOne({ email: email })
       .then(user => {
         if (user) {
           errors.push({ msg: 'Email is already registered' })
-          res.render('register', {
-            errors, name, email, password, password2
-          });
+          res.status(400).json({email: 'Email is already registered'})
         } else {
           const newUser = new User({
             name, email, password
@@ -53,10 +48,16 @@ router.post('/register', (req, res) => {
               newUser.password = hash;
               newUser.save()
                 .then(user => {
-                  req.flash('success_msg', 'Successfully registered. Please log in');
-                  res.json(user);
+                  const payload = { id: user.id, name: user.name };
+
+              jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
+                res.json({
+                  success: true,
+                  token: "Bearer " + token
+                });
+              });
                 })
-                .catch(err => console.log(err))
+                .catch(err => res.send(err))
             }))
         }
       });
@@ -82,5 +83,41 @@ router.get('/logout', (req, res) => {
 });
 module.exports = router;
 
+// login with json webtoken 
+router.post('/api/login', cors(), (req, res) => {
+  let errors = {};
+  const email = req.body.email;
+  const password = req.body.password;
 
+  User.findOne({ email }).then(user => {
+    if (!user) {
+      errors.email = "This user does not exist";
+      return res.status(400).json(errors);
+    }
 
+    bcrypt.compare(password, user.password).then(isMatch => {
+      if (isMatch) {
+        const payload = { id: user.id, email: user.email };
+
+        jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
+          res.json({
+            success: true,
+            token: "Bearer " + token
+          });
+        });
+      } else {
+        errors.password = "Incorrect password";
+        return res.status(400).json(errors);
+      }
+    });
+  });
+});
+
+// Private auth route: get current user 
+router.get('/current', passport.authenticate('jwt', {session: false}), (req, res) => {
+  res.json({
+    id: req.user.id,
+    name: req.user.name,
+    email: req.user.email
+  });
+})

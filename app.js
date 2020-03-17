@@ -6,6 +6,8 @@ const session = require('express-session');
 const app = express();
 const passport = require('passport');
 const path = require('path')
+const bodyParser = require('body-parser');
+const cors = require('cors');
 
 // Passport config
 require('./config/passport')(passport);
@@ -19,6 +21,7 @@ mongoose.connect(db, {useNewUrlParser: true})
 .then(()=> console.log('MongoDB Connected...'))
 .catch(e => console.log(e));
 
+app.use(cors());
 //EJS
 app.use(expressLayouts);
 app.set('view engine', 'ejs');
@@ -26,6 +29,8 @@ app.use(express.static(path.join(__dirname, 'views')))
 
 //Bodyparser
 app.use(express.urlencoded({ extended: false}));
+
+app.use(bodyParser.json());
 
 //Express Session
 app.use(session({
