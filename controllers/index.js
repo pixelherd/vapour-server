@@ -1,3 +1,3 @@
 module.exports = {
-    welcome: (req, res) => res.render('welcome')
+    welcome: (req, res) => res.send('welcome')
 }

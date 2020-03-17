@@ -68,46 +68,42 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 //Routes
-app
-  .use('/messages', require('./routes/messages'))
-  .use('/users', require('./routes/users'))
-  .use('/', require('./routes/index'))
 
 app.use(cors());
 
 io.on('connect', socket => {
   console.log('New connection established');
-
+  
   socket.on('join', ( name, room , callback) => {
     
     const { error, user } = addUser({ id: socket.id, name, room });
     if (error) return callback(error);
-
+    
     socket.emit('message', {
       user: 'admin',
       text: `${name}, welcome to the room ${room}`
     });
-
+    
     socket.broadcast
-      .to(room)
-      .emit('message', { user: 'admin', text: `${name} has joined!` });
-
+    .to(room)
+    .emit('message', { user: 'admin', text: `${name} has joined!` });
+    
     socket.join(room);
-
+    
     io.to(room).emit('roomData', {
       room: room,
       users: getUsersInRoom(room)
     });
-
+    
     callback();
   });
-
+  
   socket.on('sendMessage', (message, callback) => {
     const user = getUser(socket.id);
     io.to(user.room).emit('message', { user: user.name, text: message });
     callback();
   });
-
+  
   socket.on('disconnect', () => {
     const user = removeUser(socket.id);
     if (user) {
@@ -121,7 +117,12 @@ io.on('connect', socket => {
       });
     }
   });
- }
+}
 );
 
+app
+  .use('/messages', require('./routes/messages'))
+  .use('/users', require('./routes/users'))
+  .use('/', require('./routes/index'))
+  
 server.listen(PORT, console.log(`Server started on port ${PORT}`));
