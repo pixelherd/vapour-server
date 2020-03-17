@@ -66,6 +66,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+app.use(cors());
 
 //Routes
 app
@@ -73,7 +74,6 @@ app
   .use('/users', require('./routes/users'))
   .use('/', require('./routes/index'))
 
-app.use(cors());
 
 io.on('connect', socket => {
   console.log('New connection established');
