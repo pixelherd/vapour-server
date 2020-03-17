@@ -8,7 +8,7 @@ $(() => {
       time: moment().format('hh:mm')
     };
     await sendMessage(
-      'https://whispering-ocean-93586.herokuapp.com/messages',
+      'http://localhost:4000/messages',
       msgBody,
       recId
     ).then(() => addMessages(msgBody));
@@ -28,7 +28,7 @@ function addMessages(message) {
 function getMessages() {
   console.log('hi')
   fetch(
-    'https://whispering-ocean-93586.herokuapp.com/messages',
+    'http://localhost:4000/messages',
     {mode: 'cors'}
   )
     .then(res => {

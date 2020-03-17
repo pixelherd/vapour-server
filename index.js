@@ -75,6 +75,7 @@ app.use(express.json());
 io.on('connect', socket => {
   console.log('New connection established');
   socket.on('join', (name, room, callback) => {
+    console.log(name,room)
     const { error, user } = addUser({ id: socket.id, name, room });
     if (error) return callback(error);
 
@@ -97,9 +98,11 @@ io.on('connect', socket => {
     callback();
   });
 
-  socket.on('sendMessage', (message, callback) => {
+  socket.on('sendMessage', ({message, roomid}, callback) => {
+    console.log(message);
     const user = getUser(socket.id);
-    io.to(user.room).emit('message', { user: user.name, text: message });
+
+    io.to(roomid).emit('message', { user: user.name, text: message });
     callback();
   });
 
