@@ -7,7 +7,7 @@ $(() => {
       message: $('#message').val(),
       time: moment().format('hh:mm')
     };
-    await sendMessage('http://localhost:4000/messages', msgBody, recId).then(() => addMessages(msgBody));
+    await sendMessage('https://whispering-ocean-93586.herokuapp.com/messages', msgBody, recId).then(() => addMessages(msgBody));
     $('#message').val('');
   });
   getMessages();
@@ -22,7 +22,7 @@ function addMessages(message) {
 }
 
 function getMessages() {
-  fetch('http://localhost:4000/messages')
+  fetch('https://whispering-ocean-93586.herokuapp.com/messages')
     .then(res => {
       return res.json();
     })
