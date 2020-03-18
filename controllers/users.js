@@ -17,7 +17,7 @@ module.exports = {
     const { recipientId, senderId } = req.body;
     const recipient = await User.findById(recipientId);
     const sender = await User.findById(senderId);
-    const uniqStr = await uniqueString();
+    const uniqStr = uniqueString();
     const history = {
       roomId: uniqStr,
       messageHistory: []
@@ -48,7 +48,21 @@ module.exports = {
       _id: { $in: history['messageHistory'] }
     });
 
-    res.send({ name, messageHistory, roomId });
+    res.status(200).send({ name, messageHistory, roomId });
+  },
+  findAll: async (req, res) => {
+    
+    const users = await User.find({}, '_id name messages', (err, data) => {
+      if (err) {
+        return;
+      } else return data;
+    });
+
+    if (users) {
+      res.status(200).send(users);
+    } else {
+      res.status(500);
+    }
   },
   postRegister: (req, res) => {
     const { name, email, password, password2 } = req.body;
@@ -66,12 +80,12 @@ module.exports = {
     }
 
     if (errors.length > 0) {
-      res.status(400).json({errors: errors});
+      res.status(400).json({ errors: errors });
     } else {
       User.findOne({ email: email }).then(user => {
         if (user) {
           errors.push({ msg: 'Email is already registered' });
-          res.status(400).json({email: 'Email is already registered'});
+          res.status(400).json({ email: 'Email is already registered' });
         } else {
           const newUser = new User({
             name,
@@ -88,13 +102,18 @@ module.exports = {
                 .save()
                 .then(user => {
                   const payload = { id: user.id, name: user.name };
-                  jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
-                    res.json({
-                      success: true,
-                      token: "Bearer " + token
-                    });
-                  });
-                    })
+                  jwt.sign(
+                    payload,
+                    keys.secretOrKey,
+                    { expiresIn: 3600 },
+                    (err, token) => {
+                      res.json({
+                        success: true,
+                        token: 'Bearer ' + token
+                      });
+                    }
+                  );
+                })
                 .catch(err => console.log(err));
             })
           );
@@ -118,25 +137,34 @@ module.exports = {
     let errors = {};
     const email = req.body.email;
     const password = req.body.password;
-  
+
     User.findOne({ email }).then(user => {
       if (!user) {
-        errors.email = "This user does not exist";
+        errors.email = 'This user does not exist';
         return res.status(400).json(errors);
       }
-  
+
       bcrypt.compare(password, user.password).then(isMatch => {
         if (isMatch) {
-          const payload = { id: user.id, name: user.name };
-  
-          jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
-            res.json({
-              success: true,
-              token: "Bearer " + token
-            });
-          });
+          const payload = {
+            _id: user._id,
+            name: user.name,
+            messages: user.messages
+          };
+
+          jwt.sign(
+            payload,
+            keys.secretOrKey,
+            { expiresIn: 3600 },
+            (err, token) => {
+              res.json({
+                success: true,
+                token: 'Bearer ' + token
+              });
+            }
+          );
         } else {
-          errors.password = "Incorrect password";
+          errors.password = 'Incorrect password';
           return res.status(400).json(errors);
         }
       });

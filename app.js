@@ -13,11 +13,7 @@ const session = require('express-session');
 const passport = require('passport');
 const path = require('path');
 
-const {
-  addUser,
-  removeUser,
-  getUser
-} = require('./util/users');
+const { addUser, removeUser, getUser, getUsersInRoom } = require('./util/users');
 
 const PORT = process.env.PORT || 4000;
 
@@ -40,10 +36,7 @@ mongoose
   .catch(e => console.log(e));
 
 //EJS
-app.use(expressLayouts);
 app.use(cors());
-app.set('view engine', 'ejs');
-app.use(express.static(path.join(__dirname, 'views')));
 
 //Bodyparser
 app.use(express.urlencoded({ extended: true }));
@@ -78,37 +71,41 @@ wss.on('connection', wssHandler);
 
 io.on('connect', socket => {
   console.log('New connection established');
-  socket.on('join', (name, room, callback) => {
-    const { error, user } = addUser({ id: socket.id, name, room });
+  socket.on('join', (_id, roomId, callback) => {
+
+    const { error, user } = addUser({ socketId: socket.id, _id: _id, roomId: roomId });
     if (error) return callback(error);
 
-    socket.join(room);
+    socket.join(user.roomId);
 
-    // io.to(room).emit('roomData', {
-    //   room: room,
-    //   users: getUsersInRoom(room)
-    // });
+    io.to(user.roomId).emit('roomData', {
+      roomId: roomId,
+      users: getUsersInRoom(roomId)
+    });
 
     callback();
   });
 
-  socket.on('sendMessage', ({ message, roomid }, callback) => {
+  socket.on('sendMessage', (message, callback) => {
+    console.log(message)
     const user = getUser(socket.id);
-    io.to(roomid).emit('message', { name: user.name, message: message });
+    io.to(user.room).emit('message', { _id: user._id, message: message });
     callback();
   });
 
   socket.on('disconnect', () => {
-    removeUser(socket.id);
-    // if (user) {
-    //   io.to(user.room).emit('message', {
-    //     name: 'admin',
-    //     message: `${user.name} has left!`
-    //   });
-    // io.to(user.room).emit('roomData', {
-    //   room: user.room,
-    //   users: getUsersInRoom(user.room)
-    // });
+    console.log('disconnecting')
+    const user = removeUser(socket.id);
+    if (user) {
+      io.to(user.roomId).emit('message', {
+        name: 'admin',
+        message: `${user.name} has left!`
+      });
+      io.to(user.roomId).emit('roomData', {
+        room: user.roomId,
+        users: getUsersInRoom(user.roomId)
+      });
+    }
   });
 });
 

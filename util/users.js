@@ -1,25 +1,22 @@
 const users = [];
 
-const addUser = ({ id, name, room }) => {
-  name = name.trim().toLowerCase();
-  room = room.trim().toLowerCase();
+const addUser = ({ socketId, _id, roomId }) => {
 
   const existingUser = users.find(user => {
-    user.room === room && user.name === name;
+    user._id === _id && user.roomId === roomId;
   });
-
   if (existingUser) {
-    return { error: 'username is taken' };
+    return { error: 'user already logged in' };
   }
 
-  const user = { id, name, room };
+  const user = { socketId, _id, roomId };
   users.push(user);
 
   return { user };
 };
 
 const removeUser = id => {
-  const index = users.findIndex(user => user.id === id);
+  const index = users.findIndex(user => user.socketId === id);
 
   if (index !== -1) {
     return users.splice(index, 1)[0];
@@ -27,12 +24,12 @@ const removeUser = id => {
 };
 
 const getUser = id => {
-  return users.find(user => user.id === id);
+  return users.find(user => user.socketId === id);
 };
 
-const getUsersInRoom = room => {
+const getUsersInRoom = roomId => {
   return users.filter(user => {
-    user.room === room;
+    user.roomId === roomId;
   });
 };
 

@@ -26,7 +26,7 @@ module.exports = {
 
     sender.messages.set(recipient._id.toString(), mapContent);
     recipient.messages.set(sender._id.toString(), mapContent);
-
+    
     try {
       sender.save();
       recipient.save();
@@ -34,7 +34,7 @@ module.exports = {
     } catch {
       res.status(500).end('Server error!');
     } finally {
-      res.status(201).send(message);
+      res.status(201).send(newMessage);
     }
   }
 };
