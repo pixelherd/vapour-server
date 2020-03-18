@@ -3,6 +3,7 @@ const router = express.Router();
 const { ensureAuthenticated } = require('../config/auth');
 const { welcome } = require('../controllers/index');
 
+//TODO serve react root at /
 router.get('/', welcome);
 router.get('/dashboard', ensureAuthenticated, (req, res) =>
   res.render('dashboard', {    
