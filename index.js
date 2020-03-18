@@ -1,6 +1,8 @@
 const express = require('express'),
   http = require('http');
 const socketio = require('socket.io');
+const WebSocketServer = require('ws').Server;
+const wss = new WebSocketServer({ port: 9090 });
 const cors = require('cors');
 
 const expressLayouts = require('express-ejs-layouts');
@@ -108,8 +110,8 @@ io.on('connect', socket => {
     const user = removeUser(socket.id);
     if (user) {
       io.to(user.room).emit('message', {
-        user: 'admin',
-        text: `${user.name} has left!`
+        name: 'admin',
+        message: `${user.name} has left!`
       });
       io.to(user.room).emit('roomData', {
         room: user.room,

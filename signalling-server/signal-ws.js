@@ -1,10 +1,10 @@
 //require our websocket library 
 // would this need to be wrapped around the http server during merge?
 // --> can we / should we have two websocket instances using different packages or should we merge both into socket.io?
-var WebSocketServer = require('ws').Server;
+// var WebSocketServer = require('ws').Server;
 
-//creating a websocket server at port 9090 
-var wss = new WebSocketServer({ port: 9090 });
+// //creating a websocket server at port 9090 
+// var wss = new WebSocketServer({ port: 9090 });
 
 //users that connected to the server
 var users = {};
