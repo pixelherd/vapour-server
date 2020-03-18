@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Message = require('../models/Message');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
+const jwt = require('jsonwebtoken');
+const keys = require('../config/keys');
 const uniqueString = require('unique-string');
 
 module.exports = {
@@ -125,7 +127,7 @@ module.exports = {
   
       bcrypt.compare(password, user.password).then(isMatch => {
         if (isMatch) {
-          const payload = { id: user.id, email: user.email };
+          const payload = { id: user.id, name: user.name };
   
           jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
             res.json({
