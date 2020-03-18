@@ -1,2 +1,3 @@
-# .gitignore 
+.env
+package.json
 node_modules

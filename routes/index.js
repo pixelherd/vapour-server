@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../config/auth');
+const { welcome } = require('../controllers/index');
 
-router.get('/', (req, res) => res.render('welcome'))
+//TODO serve react root at /
+router.get('/', welcome);
 router.get('/dashboard', ensureAuthenticated, (req, res) =>
-  res.render('dashboard', {
+  res.render('dashboard', {    
     name: req.user.name,
     id: req.user._id
-  }));
+  })
+);
 
 module.exports = router;
