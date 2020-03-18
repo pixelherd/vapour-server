@@ -13,6 +13,9 @@ router.get('/login', userController.greet)
 //Find user by id
 router.get('/find', userController.findById)
 
+//Find all users in the DB
+router.get('/find-all', userController.findAll)
+
 //Register Page
 router.get('/register', userController.getRegister)
 
