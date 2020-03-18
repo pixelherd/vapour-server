@@ -5,7 +5,7 @@ const { welcome } = require('../controllers/index');
 
 router.get('/', welcome);
 router.get('/dashboard', ensureAuthenticated, (req, res) =>
-  res.render('dashboard', {
+  res.render('dashboard', {    
     name: req.user.name,
     id: req.user._id
   })
