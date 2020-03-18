@@ -90,10 +90,10 @@ io.on('connect', socket => {
 
     socket.join(room);
 
-    io.to(room).emit('roomData', {
-      room: room,
-      users: getUsersInRoom(room)
-    });
+    // io.to(room).emit('roomData', {
+    //   room: room,
+    //   users: getUsersInRoom(room)
+    // });
 
     callback();
   });
