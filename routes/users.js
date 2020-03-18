@@ -38,7 +38,7 @@ router.get('/logout', userController.logout);
 //New thread
 router.post('/new-thread', userController.postNewThread);
 
-// login with json webtoken 
-
 // Private auth route: get current user 
 router.get('/current', passport.authenticate('jwt', {session: false}), userController.getCurrentUser)
+
+module.exports = router;
