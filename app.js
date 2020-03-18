@@ -6,12 +6,10 @@ const wss = new WebSocketServer({ port: 9090 });
 const { wssHandler } = require('./signalling-server/signal-ws');
 const cors = require('cors');
 
-const expressLayouts = require('express-ejs-layouts');
 const mongoose = require('mongoose');
 const flash = require('connect-flash');
 const session = require('express-session');
 const passport = require('passport');
-const path = require('path');
 
 const { addUser, removeUser, getUser, getUsersInRoom } = require('./util/users');
 
@@ -71,7 +69,7 @@ wss.on('connection', wssHandler);
 
 io.on('connect', socket => {
   console.log('New connection established');
-  socket.on('join', (_id, roomId, callback) => {
+  socket.on('join', ({_id, roomId}, callback) => {
 
     const { error, user } = addUser({ socketId: socket.id, _id: _id, roomId: roomId });
     if (error) return callback(error);
@@ -83,11 +81,9 @@ io.on('connect', socket => {
       users: getUsersInRoom(roomId)
     });
 
-    callback();
   });
 
-  socket.on('sendMessage', (message, callback) => {
-    console.log(message)
+  socket.on('message', (message, callback) => {
     const user = getUser(socket.id);
     io.to(user.room).emit('message', { _id: user._id, message: message });
     callback();
