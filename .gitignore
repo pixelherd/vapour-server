@@ -1,2 +1,8 @@
+<<<<<<< HEAD
+.env
+package.json
+node_modules
+=======
 # .gitignore 
 node_modules
+>>>>>>> origin/dev

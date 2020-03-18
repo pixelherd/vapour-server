@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+      integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+      crossorigin="anonymous"
+    />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <br />
+      <div class="jumbotron">
+        <h1 class="display-4">Send Message</h1>
+        <textarea
+          id="message"
+          class="form-control"
+          placeholder="Your Message Here"
+        ></textarea>
+        <br />
+        <button id="send" class="btn btn-success">Send</button>
+      </div>
+      <div id="messages"></div>
+    </div>
+    <script>
+      const socket = io();
+      $(async () => {
+        $('#send').click(() => {
+          sendMessage({
+            message: $('#message').val(),
+            time: moment().format('hh:mm')
+          });
+          $('#message').val(''); 
+        });
+        getMessages();
+      });
+
+      socket.on('private message', addMessages);
+
+      function addMessages(message) {
+        $('#messages').append(`
+            <p>  ${message.message} </p>
+            <p>  ${message.time} </p>`);
+      }
+
+      function getMessages() {
+        $.get('http://localhost:3000/messages', data => {
+          data.forEach(addMessages);
+        });
+      }
+
+      function sendMessage(message) {
+        $.post('http://localhost:3000/messages', message);
+      }
+    </script>
+  </body>
+</html>
