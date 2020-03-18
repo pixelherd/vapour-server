@@ -90,10 +90,10 @@ io.on('connect', socket => {
 
     socket.join(room);
 
-    // io.to(room).emit('roomData', {
-    //   room: room,
-    //   users: getUsersInRoom(room)
-    // });
+    io.to(room).emit('roomData', {
+      room: room,
+      users: getUsersInRoom(room)
+    });
 
     callback();
   });
@@ -108,8 +108,8 @@ io.on('connect', socket => {
     const user = removeUser(socket.id);
     if (user) {
       io.to(user.room).emit('message', {
-        user: 'admin',
-        text: `${user.name} has left!`
+        name: 'admin',
+        message: `${user.name} has left!`
       });
       io.to(user.room).emit('roomData', {
         room: user.room,
