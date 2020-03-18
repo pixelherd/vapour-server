@@ -64,24 +64,12 @@ module.exports = {
     }
 
     if (errors.length > 0) {
-      res.render('register', {
-        errors,
-        name,
-        email,
-        password,
-        password2
-      });
+      res.status(400).json({errors: errors});
     } else {
       User.findOne({ email: email }).then(user => {
         if (user) {
           errors.push({ msg: 'Email is already registered' });
-          res.render('register', {
-            errors,
-            name,
-            email,
-            password,
-            password2
-          });
+          res.status(400).json({email: 'Email is already registered'});
         } else {
           const newUser = new User({
             name,
@@ -97,12 +85,14 @@ module.exports = {
               newUser
                 .save()
                 .then(user => {
-                  req.flash(
-                    'success_msg',
-                    'Successfully registered. Please log in'
-                  );
-                  res.redirect('/users/login');
-                })
+                  const payload = { id: user.id, name: user.name };
+                  jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
+                    res.json({
+                      success: true,
+                      token: "Bearer " + token
+                    });
+                  });
+                    })
                 .catch(err => console.log(err));
             })
           );
@@ -121,5 +111,40 @@ module.exports = {
     req.logout();
     req.flash('success_msg', 'Successfully logged out');
     res.redirect('login');
+  },
+  tokenLogin: (req, res) => {
+    let errors = {};
+    const email = req.body.email;
+    const password = req.body.password;
+  
+    User.findOne({ email }).then(user => {
+      if (!user) {
+        errors.email = "This user does not exist";
+        return res.status(400).json(errors);
+      }
+  
+      bcrypt.compare(password, user.password).then(isMatch => {
+        if (isMatch) {
+          const payload = { id: user.id, email: user.email };
+  
+          jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
+            res.json({
+              success: true,
+              token: "Bearer " + token
+            });
+          });
+        } else {
+          errors.password = "Incorrect password";
+          return res.status(400).json(errors);
+        }
+      });
+    });
+  },
+  getCurrentUser: (req, res) => {
+    res.json({
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email
+    });
   }
 };
