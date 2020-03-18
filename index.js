@@ -1,6 +1,8 @@
 const express = require('express'),
   http = require('http');
 const socketio = require('socket.io');
+const WebSocketServer = require('ws').Server;
+const wss = new WebSocketServer({ port: 9090 });
 const cors = require('cors');
 
 const expressLayouts = require('express-ejs-layouts');
