@@ -69,14 +69,13 @@ wss.on('connection', wssHandler);
 
 io.on('connect', socket => {
   console.log('New connection established');
-  socket.on('join', ({_id, roomId}, callback) => {
-
+  socket.on('join', (_id, roomId, callback) => {
     const { error, user } = addUser({ socketId: socket.id, _id: _id, roomId: roomId });
     if (error) return callback(error);
 
-    socket.join(user.roomId);
+    socket.join(roomId);
 
-    io.to(user.roomId).emit('roomData', {
+    io.to(roomId).emit('roomData', {
       roomId: roomId,
       users: getUsersInRoom(roomId)
     });
@@ -85,23 +84,23 @@ io.on('connect', socket => {
 
   socket.on('message', (message, callback) => {
     const user = getUser(socket.id);
-    io.to(user.room).emit('message', { _id: user._id, message: message });
+    io.to(user.roomId).emit('message', { _id: user._id, message: message });
     callback();
   });
 
   socket.on('disconnect', () => {
     console.log('disconnecting')
     const user = removeUser(socket.id);
-    if (user) {
-      io.to(user.roomId).emit('message', {
-        name: 'admin',
-        message: `${user.name} has left!`
-      });
-      io.to(user.roomId).emit('roomData', {
-        room: user.roomId,
-        users: getUsersInRoom(user.roomId)
-      });
-    }
+    // if (user) {
+    //   io.to(user.roomId).emit('message', {
+    //     name: 'admin',
+    //     message: `${user.name} has left!`
+    //   });
+    //   io.to(user.roomId).emit('roomData', {
+    //     room: user.roomId,
+    //     users: getUsersInRoom(user.roomId)
+    //   });
+    // }
   });
 });
 
