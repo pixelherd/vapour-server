@@ -1,10 +1,7 @@
 const router = require('express').Router();
 const userController = require('../controllers/users')
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
-const keys = require('../config/keys');
 const cors = require('cors');
 
 //Login Page

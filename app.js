@@ -11,7 +11,12 @@ const flash = require('connect-flash');
 const session = require('express-session');
 const passport = require('passport');
 
-const { addUser, removeUser, getUser, getUsersInRoom } = require('./util/users');
+const {
+  addUser,
+  removeUser,
+  getUser,
+  getUsersInRoom
+} = require('./util/users');
 
 const PORT = process.env.PORT || 4000;
 
@@ -67,40 +72,39 @@ app.use(express.json());
 
 wss.on('connection', wssHandler);
 
-io.on('connect', socket => {
+io.on('connection', socket => {
   console.log('New connection established');
-  socket.on('join', (_id, roomId, callback) => {
-    const { error, user } = addUser({ socketId: socket.id, _id: _id, roomId: roomId });
-    if (error) return callback(error);
+  socket.on('join', (name, roomid, callback) => {
+    console.log('joining', roomid);
+    if (roomid) {
+      const { error, user } = addUser(socket.id, roomid, name);
+      if (error) return callback(error);
+      console.log(user)
+      socket.join(user.roomId);
 
-    socket.join(roomId);
-
-    io.to(roomId).emit('roomData', {
-      roomId: roomId,
-      users: getUsersInRoom(roomId)
-    });
-
+      io.to(user.roomId).emit('roomData', {
+        room: user.roomId,
+        users: getUsersInRoom(user.roomId)
+      });
+    }
   });
 
   socket.on('message', (message, callback) => {
+    console.log(socket.id);
     const user = getUser(socket.id);
     io.to(user.roomId).emit('message', { _id: user._id, message: message });
     callback();
   });
 
   socket.on('disconnect', () => {
-    console.log('disconnecting')
+    console.log('disconnecting');
     const user = removeUser(socket.id);
-    // if (user) {
-    //   io.to(user.roomId).emit('message', {
-    //     name: 'admin',
-    //     message: `${user.name} has left!`
-    //   });
-    //   io.to(user.roomId).emit('roomData', {
-    //     room: user.roomId,
-    //     users: getUsersInRoom(user.roomId)
-    //   });
-    // }
+    if (user) {
+      io.to(user.roomId).emit('roomData', {
+        room: user.roomId,
+        users: getUsersInRoom(user.roomId)
+      });
+    }
   });
 });
 
