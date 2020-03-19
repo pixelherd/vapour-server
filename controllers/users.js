@@ -35,23 +35,24 @@ module.exports = {
       res.status(201).send(history);
     }
   },
+  findUserById: async (req, res) => {
+    const { _id } = req.query;
+    const user = await User.findById(_id, '_id name messages');
+    user ? res.status(200).send(user) : res.status(500);
+  },
   findById: async (req, res) => {
     const { from, to } = req.query;
-
     const user = await User.findById(from);
     const { messages } = user;
     const { name } = user;
     const history = messages.get(to);
     const { roomId } = history;
-
     const messageHistory = await Message.find({
       _id: { $in: history['messageHistory'] }
     });
-
     res.status(200).send({ name, messageHistory, roomId });
   },
   findAll: async (req, res) => {
-    
     const users = await User.find({}, '_id name messages', (err, data) => {
       if (err) {
         return;
@@ -149,7 +150,6 @@ module.exports = {
           const payload = {
             _id: user._id,
             name: user.name,
-            messages: user.messages
           };
 
           jwt.sign(
@@ -172,9 +172,9 @@ module.exports = {
   },
   getCurrentUser: (req, res) => {
     res.json({
-      id: req.user.id,
+      id: req.user._id,
       name: req.user.name,
-      email: req.user.email
+      email: req.user.email,
     });
   }
 };

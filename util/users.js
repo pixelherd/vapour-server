@@ -1,7 +1,6 @@
 const users = [];
 
 const addUser = ({ socketId, _id, roomId }) => {
-
   const existingUser = users.find(user => {
     user._id === _id && user.roomId === roomId;
   });

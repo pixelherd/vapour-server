@@ -13,6 +13,9 @@ router.get('/login', userController.greet)
 //Find user by id
 router.get('/find', userController.findById)
 
+//Find current user by id
+router.get('/find-current', userController.findUserById)
+
 //Find all users in the DB
 router.get('/find-all', userController.findAll)
 
