@@ -15,24 +15,12 @@ module.exports = {
   },
   postNewThread: async (req, res) => {
     const { recipientId, senderId } = req.body;
-    const recipient = await User.findById(recipientId);
-    const sender = await User.findById(senderId);
-    const uniqStr = uniqueString();
-    const history = {
-      roomId: uniqStr,
-      messageHistory: []
-    };
+    const { recipient, sender } = await newThread(recipientId, senderId);
 
-    recipient.messages.set(senderId, history);
-    sender.messages.set(recipientId, history);
-
-    try {
-      recipient.save();
-      sender.save();
-    } catch {
+    if (!recipient && !sender) {
       res.status(500).send('Server error');
-    } finally {
-      res.status(201).send(history);
+    } else {
+      res.status(201).send({recipient, sender});
     }
   },
   findUserById: async (req, res) => {
@@ -45,12 +33,18 @@ module.exports = {
     const user = await User.findById(from);
     const { messages } = user;
     const { name } = user;
+    let messageHistory, roomId;
     const history = messages.get(to);
-    const { roomId } = history;
-    const messageHistory = await Message.find({
-      _id: { $in: history['messageHistory'] }
-    });
-    res.status(200).send({ name, messageHistory, roomId });
+    if (history && history.roomId) {
+      ({ roomId } = history);
+      messageHistory = await Message.find({
+        _id: { $in: history['messageHistory'] }
+      });
+      res.status(200).send({ name, messageHistory, roomId });
+    } else {
+      ({ messageHistory, roomId } = await newThread(from, to));
+      res.status(200).send({ name, messageHistory, roomId });
+    }
   },
   findAll: async (req, res) => {
     const users = await User.find({}, '_id name messages', (err, data) => {
@@ -149,7 +143,7 @@ module.exports = {
         if (isMatch) {
           const payload = {
             _id: user._id,
-            name: user.name,
+            name: user.name
           };
 
           jwt.sign(
@@ -174,7 +168,27 @@ module.exports = {
     res.json({
       id: req.user._id,
       name: req.user.name,
-      email: req.user.email,
+      email: req.user.email
     });
   }
 };
+
+async function newThread(senderId, recipientId) {
+  const recipient = await User.findById(recipientId);
+  const sender = await User.findById(senderId);
+  const uniqStr = uniqueString();
+  const history = {
+    roomId: uniqStr,
+    messageHistory: []
+  };
+  recipient.messages.set(senderId, history);
+  sender.messages.set(recipientId, history);
+  try {
+    recipient.save();
+    sender.save();
+  } catch {
+    console.log(err);
+  } finally {
+    return {recipient, sender};
+  }
+}
