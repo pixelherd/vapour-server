@@ -22,6 +22,7 @@ module.exports = {
 
 
     let mapContent = sender.messages.get(recipient._id.toString());
+
     let messageHistory = sender.messages.get(recipient._id.toString())
       .messageHistory;
     mapContent.messageHistory = [...messageHistory, newMessage];
