@@ -26,7 +26,8 @@ const UserSchema = new mongoose.Schema({
       _id : false,
       roomId: String,
       messageHistory: [{ type: Schema.Types.ObjectId, ref: 'Message' }]
-    }
+    },
+    required: false,
   }
 });
 

@@ -7,9 +7,9 @@ const { wssHandler } = require('./signalling-server/signal-ws');
 const cors = require('cors');
 
 const mongoose = require('mongoose');
-const flash = require('connect-flash');
 const session = require('express-session');
 const passport = require('passport');
+const MongoStore = require('connect-mongo')(session)
 
 const {
   addUser,
@@ -38,37 +38,25 @@ mongoose
   .then(() => console.log('MongoDB Connected...'))
   .catch(e => console.log(e));
 
-//EJS
-app.use(cors());
+//CORS
+app.use(cors({credentials: true, origin: 'http://localhost:3000'}));
 
 //Bodyparser
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 //Express Session
-app.use(
-  session({
-    secret: 'mysecret',
-    resave: true,
-    saveUninitialized: true
-  })
-);
+app.use(session({
+  secret: 'mysecret',
+  store: new MongoStore({ mongooseConnection: mongoose.connection }),
+  resave: false,
+  saveUninitialized: false,
+  // cookie: {maxAge: 60000}
+}));
 
 //Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
-
-//Connect flash
-app.use(flash());
-
-//Global Vars
-app.use((req, res, next) => {
-  res.locals.success_msg = req.flash('success_msg');
-  res.locals.error_msg = req.flash('error_msg');
-  res.locals.error = req.flash('error');
-  next();
-});
-
-app.use(express.json());
 
 wss.on('connection', wssHandler);
 
@@ -89,7 +77,7 @@ io.on('connection', socket => {
   });
 
   socket.on('message', (message, callback) => {
-    
+
     let user = getUser(socket.id);
     io.to(user.roomId).emit('message', { _id: user._id, message: message });
     callback();
@@ -111,6 +99,5 @@ io.on('connection', socket => {
 app
   .use('/messages', require('./routes/messages'))
   .use('/users', require('./routes/users'))
-  .use('/', require('./routes/index'));
 
 server.listen(PORT, console.log(`Server started on port ${PORT}`));

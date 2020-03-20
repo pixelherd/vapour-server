@@ -2,17 +2,10 @@ const User = require('../models/User');
 const Message = require('../models/Message');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
-const jwt = require('jsonwebtoken');
 const keys = require('../config/keys');
 const uniqueString = require('unique-string');
 
 module.exports = {
-  greet: (req, res) => {
-    res.render('login');
-  },
-  getRegister: (req, res) => {
-    res.render('register');
-  },
   findUserById: async (req, res) => {
     const { _id } = req.query;
     const user = await User.findById(_id, '_id name messages');
@@ -65,113 +58,70 @@ module.exports = {
     }
 
     if (errors.length > 0) {
-      res.status(400).json({ errors: errors });
-    } else {
-      User.findOne({ email: email }).then(user => {
-        if (user) {
-          errors.push({ msg: 'Email is already registered' });
-          res.status(400).json({ email: 'Email is already registered' });
-        } else {
-          const newUser = new User({
-            name,
-            email,
-            password,
-            messages: {}
-          });
+      res.send({ error: errors });
 
-          bcrypt.genSalt(10, (err, salt) =>
-            bcrypt.hash(newUser.password, salt, (err, hash) => {
-              if (err) throw err;
-              newUser.password = hash;
-              newUser
-                .save()
-                .then(user => {
-                  User.find().then(users =>
-                    users.forEach(user =>
-                      newThread(newUser._id.toString(), user._id.toString())
-                    )
-                  );
-                  return user;
-                })
-                .then(user => {
-                  const payload = { id: user.id, name: user.name };
-                  jwt.sign(
-                    payload,
-                    keys.secretOrKey,
-                    { expiresIn: 3600 },
-                    (err, token) => {
-                      res.json({
-                        success: true,
-                        token: 'Bearer ' + token
-                      });
-                    }
-                  );
-                })
-                .catch(err => console.log(err));
-            })
-          );
-        }
-      });
+    } else {
+      User.findOne({ email: email })
+        .then(user => {
+          if (user) {
+            errors.push({ msg: 'Email is already registered' })
+            res.send({ error: errors });
+          } else {
+            const newUser = new User({
+              name, email, password, messages: {}
+            });
+
+            bcrypt.genSalt(10, (err, salt) =>
+              bcrypt.hash(newUser.password, salt, (err, hash) => {
+                if (err) throw err;
+                newUser.password = hash;
+                newUser.save()
+                  .then(user => {
+                    User.find().then(users =>
+                      users.forEach(user =>
+                        newThread(newUser._id.toString(), user._id.toString())
+                      )
+                    );
+                    return user;
+                  })
+                  .then(user => {
+                    res.send({ success: 'Successfully registered. Please log in. Redirecting now...' });
+                  })
+                  .catch(err => console.log(err))
+              }))
+          }
+        });
     }
   },
+
   login: (req, res, next) => {
-    passport.authenticate('local', {
-      successRedirect: '/dashboard',
-      failureRedirect: '/users/login',
-      failureFlash: true
+    passport.authenticate('local', function (err, user, info) {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.json(info);
+      }
+      req.logIn(user, function (err) {
+        if (err) {
+          return next(err);
+        }
+        return res.json({ user: user });
+      });
     })(req, res, next);
   },
   logout: (req, res) => {
-    req.logout();
-    req.flash('success_msg', 'Successfully logged out');
-    res.redirect('login');
+    req.logOut();
+    res.redirect('/users/');
   },
-  tokenLogin: (req, res) => {
-    let errors = {};
-    const email = req.body.email;
-    const password = req.body.password;
-
-    User.findOne({ email }).then(user => {
-      if (!user) {
-        errors.email = 'This user does not exist';
-        return res.status(400).json(errors);
-      }
-
-      bcrypt.compare(password, user.password).then(isMatch => {
-        if (isMatch) {
-          const payload = {
-            _id: user._id,
-            name: user.name
-          };
-
-          jwt.sign(
-            payload,
-            keys.secretOrKey,
-            { expiresIn: 3600 },
-            (err, token) => {
-              res.json({
-                success: true,
-                token: 'Bearer ' + token
-              });
-            }
-          );
-        } else {
-          errors.password = 'Incorrect password';
-          return res.status(400).json(errors);
-        }
-      });
-    });
+  session: (req, res) => {
+    if(req.user){
+      res.send({user: req.user})
+    } else res.send({Auth:false})
   },
-  getCurrentUser: (req, res) => {
-    res.json({
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email
-    });
-  }
 };
 
-async function newThread(senderId, recipientId) {
+async function newThread (senderId, recipientId) {
   const recipient = await User.findById(recipientId);
   const sender = await User.findById(senderId);
   const uniqStr = uniqueString();
