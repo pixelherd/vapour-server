@@ -1,10 +1,7 @@
 const router = require('express').Router();
 const userController = require('../controllers/users')
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
-const keys = require('../config/keys');
 const cors = require('cors');
 
 //Login Page
@@ -12,6 +9,12 @@ router.get('/login', userController.greet)
 
 //Find user by id
 router.get('/find', userController.findById)
+
+//Find current user by id
+router.get('/find-current', userController.findUserById)
+
+//Find all users in the DB
+router.get('/find-all', userController.findAll)
 
 //Register Page
 router.get('/register', userController.getRegister)

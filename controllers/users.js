@@ -15,40 +15,49 @@ module.exports = {
   },
   postNewThread: async (req, res) => {
     const { recipientId, senderId } = req.body;
-    const recipient = await User.findById(recipientId);
-    const sender = await User.findById(senderId);
-    const uniqStr = await uniqueString();
-    const history = {
-      roomId: uniqStr,
-      messageHistory: []
-    };
+    const { recipient, sender } = await newThread(recipientId, senderId);
 
-    recipient.messages.set(senderId, history);
-    sender.messages.set(recipientId, history);
-
-    try {
-      recipient.save();
-      sender.save();
-    } catch {
+    if (!recipient && !sender) {
       res.status(500).send('Server error');
-    } finally {
-      res.status(201).send(history);
+    } else {
+      res.status(201).send({recipient, sender});
     }
+  },
+  findUserById: async (req, res) => {
+    const { _id } = req.query;
+    const user = await User.findById(_id, '_id name messages');
+    user ? res.status(200).send(user) : res.status(500);
   },
   findById: async (req, res) => {
     const { from, to } = req.query;
-
     const user = await User.findById(from);
     const { messages } = user;
     const { name } = user;
+    let messageHistory, roomId;
     const history = messages.get(to);
-    const { roomId } = history;
-
-    const messageHistory = await Message.find({
-      _id: { $in: history['messageHistory'] }
+    if (history && history.roomId) {
+      ({ roomId } = history);
+      messageHistory = await Message.find({
+        _id: { $in: history['messageHistory'] }
+      });
+      res.status(200).send({ name, messageHistory, roomId });
+    } else {
+      ({ messageHistory, roomId } = await newThread(from, to));
+      res.status(200).send({ name, messageHistory, roomId });
+    }
+  },
+  findAll: async (req, res) => {
+    const users = await User.find({}, '_id name messages', (err, data) => {
+      if (err) {
+        return;
+      } else return data;
     });
 
-    res.send({ name, messageHistory, roomId });
+    if (users) {
+      res.status(200).send(users);
+    } else {
+      res.status(500);
+    }
   },
   postRegister: (req, res) => {
     const { name, email, password, password2 } = req.body;
@@ -66,12 +75,12 @@ module.exports = {
     }
 
     if (errors.length > 0) {
-      res.status(400).json({errors: errors});
+      res.status(400).json({ errors: errors });
     } else {
       User.findOne({ email: email }).then(user => {
         if (user) {
           errors.push({ msg: 'Email is already registered' });
-          res.status(400).json({email: 'Email is already registered'});
+          res.status(400).json({ email: 'Email is already registered' });
         } else {
           const newUser = new User({
             name,
@@ -88,13 +97,18 @@ module.exports = {
                 .save()
                 .then(user => {
                   const payload = { id: user.id, name: user.name };
-                  jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
-                    res.json({
-                      success: true,
-                      token: "Bearer " + token
-                    });
-                  });
-                    })
+                  jwt.sign(
+                    payload,
+                    keys.secretOrKey,
+                    { expiresIn: 3600 },
+                    (err, token) => {
+                      res.json({
+                        success: true,
+                        token: 'Bearer ' + token
+                      });
+                    }
+                  );
+                })
                 .catch(err => console.log(err));
             })
           );
@@ -118,25 +132,33 @@ module.exports = {
     let errors = {};
     const email = req.body.email;
     const password = req.body.password;
-  
+
     User.findOne({ email }).then(user => {
       if (!user) {
-        errors.email = "This user does not exist";
+        errors.email = 'This user does not exist';
         return res.status(400).json(errors);
       }
-  
+
       bcrypt.compare(password, user.password).then(isMatch => {
         if (isMatch) {
-          const payload = { id: user.id, name: user.name };
-  
-          jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
-            res.json({
-              success: true,
-              token: "Bearer " + token
-            });
-          });
+          const payload = {
+            _id: user._id,
+            name: user.name
+          };
+
+          jwt.sign(
+            payload,
+            keys.secretOrKey,
+            { expiresIn: 3600 },
+            (err, token) => {
+              res.json({
+                success: true,
+                token: 'Bearer ' + token
+              });
+            }
+          );
         } else {
-          errors.password = "Incorrect password";
+          errors.password = 'Incorrect password';
           return res.status(400).json(errors);
         }
       });
@@ -144,9 +166,29 @@ module.exports = {
   },
   getCurrentUser: (req, res) => {
     res.json({
-      id: req.user.id,
+      id: req.user._id,
       name: req.user.name,
       email: req.user.email
     });
   }
 };
+
+async function newThread(senderId, recipientId) {
+  const recipient = await User.findById(recipientId);
+  const sender = await User.findById(senderId);
+  const uniqStr = uniqueString();
+  const history = {
+    roomId: uniqStr,
+    messageHistory: []
+  };
+  recipient.messages.set(senderId, history);
+  sender.messages.set(recipientId, history);
+  try {
+    recipient.save();
+    sender.save();
+  } catch {
+    console.log(err);
+  } finally {
+    return {recipient, sender};
+  }
+}

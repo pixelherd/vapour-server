@@ -6,17 +6,16 @@ const wss = new WebSocketServer({ port: 9090 });
 const { wssHandler } = require('./signalling-server/signal-ws');
 const cors = require('cors');
 
-const expressLayouts = require('express-ejs-layouts');
 const mongoose = require('mongoose');
 const flash = require('connect-flash');
 const session = require('express-session');
 const passport = require('passport');
-const path = require('path');
 
 const {
   addUser,
   removeUser,
-  getUser
+  getUser,
+  getUsersInRoom
 } = require('./util/users');
 
 const PORT = process.env.PORT || 4000;
@@ -40,10 +39,7 @@ mongoose
   .catch(e => console.log(e));
 
 //EJS
-app.use(expressLayouts);
 app.use(cors());
-app.set('view engine', 'ejs');
-app.use(express.static(path.join(__dirname, 'views')));
 
 //Bodyparser
 app.use(express.urlencoded({ extended: true }));
@@ -76,39 +72,39 @@ app.use(express.json());
 
 wss.on('connection', wssHandler);
 
-io.on('connect', socket => {
+io.on('connection', socket => {
   console.log('New connection established');
-  socket.on('join', (name, room, callback) => {
-    const { error, user } = addUser({ id: socket.id, name, room });
-    if (error) return callback(error);
+  socket.on('join', (name, roomid, callback) => {
+    console.log('joining', roomid);
+    if (roomid) {
+      const { error, user } = addUser(socket.id, roomid, name);
+      if (error) return callback(error);
+      console.log(user)
+      socket.join(user.roomId);
 
-    socket.join(room);
-
-    // io.to(room).emit('roomData', {
-    //   room: room,
-    //   users: getUsersInRoom(room)
-    // });
-
-    callback();
+      io.to(user.roomId).emit('roomData', {
+        room: user.roomId,
+        users: getUsersInRoom(user.roomId)
+      });
+    }
   });
 
-  socket.on('sendMessage', ({ message, roomid }, callback) => {
+  socket.on('message', (message, callback) => {
+    console.log(socket.id);
     const user = getUser(socket.id);
-    io.to(roomid).emit('message', { name: user.name, message: message });
+    io.to(user.roomId).emit('message', { _id: user._id, message: message });
     callback();
   });
 
   socket.on('disconnect', () => {
-    removeUser(socket.id);
-    // if (user) {
-    //   io.to(user.room).emit('message', {
-    //     name: 'admin',
-    //     message: `${user.name} has left!`
-    //   });
-    // io.to(user.room).emit('roomData', {
-    //   room: user.room,
-    //   users: getUsersInRoom(user.room)
-    // });
+    console.log('disconnecting');
+    const user = removeUser(socket.id);
+    if (user) {
+      io.to(user.roomId).emit('roomData', {
+        room: user.roomId,
+        users: getUsersInRoom(user.roomId)
+      });
+    }
   });
 });
 

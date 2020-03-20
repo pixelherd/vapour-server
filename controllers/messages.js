@@ -8,7 +8,7 @@ module.exports = {
     });
   },
   postMessage: async (req, res) => {
-    const { message, recipientId, senderId } = req.body;
+    const { message, recipientId, senderId, senderName } = req.body;
 
     let sender = await User.findById(senderId);
     let recipient = await User.findById(recipientId);
@@ -16,8 +16,10 @@ module.exports = {
     const newMessage = new Message({
       ...message,
       from: sender._id,
-      to: recipient._id
+      to: recipient._id,
+      senderName: senderName
     });
+
 
     let mapContent = sender.messages.get(recipient._id.toString());
     let messageHistory = sender.messages.get(recipient._id.toString())
@@ -26,7 +28,7 @@ module.exports = {
 
     sender.messages.set(recipient._id.toString(), mapContent);
     recipient.messages.set(sender._id.toString(), mapContent);
-
+    
     try {
       sender.save();
       recipient.save();
@@ -34,7 +36,7 @@ module.exports = {
     } catch {
       res.status(500).end('Server error!');
     } finally {
-      res.status(201).send(message);
+      res.status(201).send(newMessage);
     }
   }
 };
