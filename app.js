@@ -79,7 +79,6 @@ io.on('connection', socket => {
     if (roomid) {
       const { error, user } = addUser(socket.id, roomid, name);
       if (error) return callback(error);
-      console.log(user)
       socket.join(user.roomId);
 
       io.to(user.roomId).emit('roomData', {
@@ -90,8 +89,8 @@ io.on('connection', socket => {
   });
 
   socket.on('message', (message, callback) => {
-    console.log(socket.id);
-    const user = getUser(socket.id);
+    
+    let user = getUser(socket.id);
     io.to(user.roomId).emit('message', { _id: user._id, message: message });
     callback();
   });
