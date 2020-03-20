@@ -13,16 +13,6 @@ module.exports = {
   getRegister: (req, res) => {
     res.render('register');
   },
-  postNewThread: async (req, res) => {
-    const { recipientId, senderId } = req.body;
-    const { recipient, sender } = await newThread(recipientId, senderId);
-
-    if (!recipient && !sender) {
-      res.status(500).send('Server error');
-    } else {
-      res.status(201).send({recipient, sender});
-    }
-  },
   findUserById: async (req, res) => {
     const { _id } = req.query;
     const user = await User.findById(_id, '_id name messages');
@@ -95,6 +85,14 @@ module.exports = {
               newUser.password = hash;
               newUser
                 .save()
+                .then(user => {
+                  User.find().then(users =>
+                    users.forEach(user =>
+                      newThread(newUser._id.toString(), user._id.toString())
+                    )
+                  );
+                  return user;
+                })
                 .then(user => {
                   const payload = { id: user.id, name: user.name };
                   jwt.sign(
@@ -183,12 +181,13 @@ async function newThread(senderId, recipientId) {
   };
   recipient.messages.set(senderId, history);
   sender.messages.set(recipientId, history);
+
   try {
     recipient.save();
     sender.save();
   } catch {
     console.log(err);
   } finally {
-    return {recipient, sender};
+    return { recipient, sender };
   }
 }

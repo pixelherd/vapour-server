@@ -38,9 +38,6 @@ router.post('/api/login', cors(), userController.tokenLogin);
 //Logout
 router.get('/logout', userController.logout);
 
-//New thread
-router.post('/new-thread', userController.postNewThread);
-
 // Private auth route: get current user 
 router.get('/current', passport.authenticate('jwt', {session: false}), userController.getCurrentUser)
 
