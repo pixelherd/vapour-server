@@ -111,6 +111,7 @@ module.exports = {
     })(req, res, next);
   },
   logout: (req, res) => {
+    console.log('logging out')
     req.logOut();
     res.redirect('/users/');
   },
