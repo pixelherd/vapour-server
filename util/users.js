@@ -1,18 +1,18 @@
 const users = [];
 
-const addUser = (socketId, roomId, name ) => {
+const addUser = (socketId, roomId, name, _id ) => {
 
   const recipient = users.find(user => 
     user.roomId === roomId
   );
-  let user = { socketId, roomId, name };
+  let user = { socketId, roomId, name, _id };
   
   if (recipient && recipient.socketId === user.socketId) {
     return error;
   }
 
   users.push(user);
-
+  console.log(users)
   return { user };
 };
 

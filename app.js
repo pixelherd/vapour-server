@@ -72,12 +72,20 @@ app.use(express.json());
 
 wss.on('connection', wssHandler);
 
+let loggedInUsers = [];
+
 io.on('connection', socket => {
+  socket.on('login', (_id, callback) => {
+    loggedInUsers.push({_id: _id})
+    callback();
+    console.log(loggedInUsers)
+  })
+
   console.log('New connection established');
-  socket.on('join', (name, roomid, callback) => {
+  socket.on('join', (name, roomid, _id, callback) => {
     console.log('joining', roomid);
     if (roomid) {
-      const { error, user } = addUser(socket.id, roomid, name);
+      const { error, user } = addUser(socket.id, roomid, name, _id);
       if (error) return callback(error);
       socket.join(user.roomId);
 
@@ -89,8 +97,9 @@ io.on('connection', socket => {
   });
 
   socket.on('message', (message, callback) => {
-    
+    console.log(message);
     let user = getUser(socket.id);
+    console.log(user);
     io.to(user.roomId).emit('message', { _id: user._id, message: message });
     callback();
   });
@@ -106,6 +115,7 @@ io.on('connection', socket => {
     }
   });
 });
+
 
 //Routes
 app
