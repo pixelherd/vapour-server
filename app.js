@@ -63,10 +63,19 @@ wss.on('connection', wssHandler);
 let loggedInUsers = [];
 
 io.on('connection', socket => {
+
   socket.on('login', (_id, callback) => {
-    loggedInUsers.push({_id: _id})
+    if (!loggedInUsers.includes(_id)) {
+      loggedInUsers.push(_id)
+    }
     callback();
     console.log(loggedInUsers)
+  })
+  socket.on('logout', (_id, callback) => {
+    console.log(loggedInUsers, 'logging out')
+    loggedInUsers = loggedInUsers.filter(userId => userId !== _id);
+    console.log(loggedInUsers)
+    callback();
   })
 
   console.log('New connection established');
