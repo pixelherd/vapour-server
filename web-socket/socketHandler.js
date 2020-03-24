@@ -9,12 +9,12 @@ let loggedInUsers = new Set();
 
 function socketHandler(io, socket) {
   socket.on('login', async (_id, callback) => {
-    await loggedInUsers.add(_id);
+    loggedInUsers.add(_id);
     socket.broadcast.emit('updateUsers', [...loggedInUsers]);
     callback([...loggedInUsers]);
   });
   socket.on('logout', async _id => {
-    await loggedInUsers.delete(_id);
+    loggedInUsers.delete(_id);
     socket.broadcast.emit('updateUsers', [...loggedInUsers]);
   });
 
@@ -37,7 +37,6 @@ function socketHandler(io, socket) {
   });
 
   socket.on('message', (message, callback) => {
-    console.log(message);
     let user = getUser(socket.id);
     io.to(user.roomId).emit('message', { _id: user._id, message: message });
     callback();
