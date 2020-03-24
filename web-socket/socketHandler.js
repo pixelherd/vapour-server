@@ -37,6 +37,7 @@ function socketHandler(io, socket) {
   });
 
   socket.on('message', (message, callback) => {
+    console.log(message);
     let user = getUser(socket.id);
     io.to(user.roomId).emit('message', { _id: user._id, message: message });
     callback();
