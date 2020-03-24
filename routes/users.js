@@ -1,29 +1,31 @@
-const router = require('express').Router();
-const userController = require('../controllers/users')
-const passport = require('passport');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-
+const router = require("express").Router();
+const userController = require("../controllers/users");
+const passport = require("passport");
+const jwt = require("jsonwebtoken");
+const cors = require("cors");
 
 //Find user by id
-router.get('/find', userController.findById)
+router.get("/find", userController.findById);
 
 //Find current user by id
-router.get('/find-current', userController.findUserById)
+router.get("/find-current", userController.findUserById);
+
+//Update current user
+router.put("/update-current", userController.updateCurrent);
 
 //Find all users in the DB
-router.get('/find-all', userController.findAll)
+router.get("/find-all", userController.findAll);
 
 //Register Handle
-router.post('/register', userController.postRegister)
+router.post("/register", userController.postRegister);
 
 //Login
-router.post('/login', userController.login)
+router.post("/login", userController.login);
 
 //Logout
-router.get('/logout', userController.logout);
+router.get("/logout", userController.logout);
 
 //Session handle
-router.get('/', userController.session);
+router.get("/", userController.session);
 
 module.exports = router;
