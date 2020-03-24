@@ -1,7 +1,7 @@
-const express = require('express'),
-  http = require('http');
-const socketio = require('socket.io');
-const WebSocketServer = require('ws').Server;
+const express = require("express"),
+  http = require("http");
+const socketio = require("socket.io");
+const WebSocketServer = require("ws").Server;
 const wss = new WebSocketServer({ port: 9090 });
 const { wssHandler } = require('./signalling-server/signal-ws');
 const cors = require('cors');
@@ -21,23 +21,24 @@ const io = socketio(server, {
 });
 
 // Passport config
-require('./config/passport')(passport);
+require("./config/passport")(passport);
 
 // DB Config
-const db = require('./config/keys').MongoURI;
+const db = require("./config/keys").MongoURI;
 
 //Connect to Mongo
 mongoose
   .connect(db, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB Connected...'))
+  .then(() => console.log("MongoDB Connected..."))
   .catch(e => console.log(e));
 
 //CORS
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
 
+
 //Bodyparser
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 //Express Session
 app.use(
@@ -54,7 +55,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-wss.on('connection', wssHandler);
+wss.on("connection", wssHandler);
 
 io.on('connection', socket => socketHandler(io, socket));
 
