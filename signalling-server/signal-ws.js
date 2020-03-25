@@ -1,11 +1,20 @@
 //users that connected to the server
-var users = {};
+// const { getUser } = require('./util/users');
 
+
+//users that connected to the server
+var users = {};
 //when a user connects to our sever
 module.exports = {
   wssHandler: function (connection) {
+
+
+    // socket.join function ==> takes newly logged in user's id & connection info to put in users object
+
+
     //when server gets a message from a connected user
     connection.on('message', function (message) {
+      console.log('message received', message)
       var data;
 
       //accepting only JSON messages
@@ -18,63 +27,102 @@ module.exports = {
 
       //switching type of the user message
       switch (data.type) {
-        // continue merging from here:
+
+        //when a user tries to login --> replace this with our existing login route
+        case "join":
+          console.log(`User "${data.name}" registering`);
+          // console.log('login data object', data)
+          //if anyone is logged in with this username then refuse 
+          if (users[data.id]) {
+            console.log(`User "${data.name}" is already registered`)
+          } else {
+            //save user connection on the server 
+            // NB EACH USER HAS THEIR OWN CONNECTION => LABELLED WITH THEIR USER ID
+            users[data.id] = connection;
+            connection.name = data.id;
+            // console.log('users object', users)
+            console.log(`Login success: User "${data.name}" is now registered`)
+          }
+          break;
+
+        case 'receiveCall':
+          console.log('Calling: ', data.callee.name);
+          var callee = users[data.callee.id];
+          // if (conn != null) {
+            //setting that UserA connected with UserB
+            // connection.caller = data.caller.id;
+            sendTo(callee, {
+              type: 'receiveCall',
+              // name: connection.name,
+              caller: data.caller,
+              callee: data.callee
+            });
+            console.log('caller', data.caller)
+            console.log('callee', data.callee)
+          // }
+          break;
+
         case 'offer':
           //for ex. UserA wants to call UserB
           console.log('Sending offer to: ', data.name);
           //if UserB exists then send him offer details
-          var conn = users[data.name];
-          if (conn != null) {
+          var caller = users[data.caller.id];
+          // if (caller != null) {
             //setting that UserA connected with UserB
-            connection.otherName = data.name;
-            sendTo(conn, {
+            // connection.otherName = data.name;
+            sendTo(caller, {
               type: 'offer',
               offer: data.offer,
-              name: connection.name
+              caller: data.caller,
+              callee: data.callee
             });
-          }
+          // }
           break;
 
         case 'answer':
           console.log('Sending answer to: ', data.name);
           //for ex. UserB answers UserA
-          var conn = users[data.name];
-          if (conn != null) {
-            connection.otherName = data.name;
+          var callee = users[data.callee.id];
+          // if (callee != null) {
+            // connection.otherName = data.name;
             sendTo(conn, {
               type: 'answer',
-              answer: data.answer
+              answer: data.answer,
+              caller: data.caller,
+              callee: data.callee
             });
-          }
+          // }
           break;
 
         case 'candidate':
           console.log('Sending candidate to:', data.name);
-          var conn = users[data.name];
-          if (conn != null) {
-            sendTo(conn, {
+          var caller = users[data.caller.id];
+          // if (caller != null) {
+            sendTo(caller, {
               type: 'candidate',
-              candidate: data.candidate
+              candidate: data.candidate,
+              caller: data.caller,
+              callee: data.callee
             });
-          }
+          // }
           break;
 
         case 'leave':
-          console.log('Disconnecting from', data.name);
-          var conn = users[data.name];
-          conn.otherName = null;
+          console.log('Disconnecting from', data.partner.name);
+          var conn = users[data.partner.id];
           //notify the other user so he can disconnect his peer connection
-          if (conn != null) {
+          // if (conn != null) {
             sendTo(conn, {
-              type: 'leave'
+              type: 'leave',
+              partner: data.partner
             });
-          }
+          // }
           break;
 
         default:
           sendTo(connection, {
             type: 'error',
-            message: 'Command no found: ' + data.type
+            message: 'Command not found: ' + data.type
           });
           break;
       }
