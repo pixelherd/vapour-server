@@ -121,7 +121,9 @@ module.exports = {
         if (err) {
           return next(err);
         }
-        return res.json({ user: user });
+        return res.json({
+          user: user
+        });
       });
     })(req, res, next);
   },
