@@ -1,8 +1,5 @@
 const router = require("express").Router();
 const userController = require("../controllers/users");
-const passport = require("passport");
-const jwt = require("jsonwebtoken");
-const cors = require("cors");
 
 //Find user by id
 router.get("/find", userController.findById);
