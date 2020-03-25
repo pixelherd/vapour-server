@@ -1,31 +1,14 @@
-const User = require('../models/User');
-const Message = require('../models/Message');
-const bcrypt = require('bcryptjs');
-const passport = require('passport');
-const jwt = require('jsonwebtoken');
-const keys = require('../config/keys');
-const uniqueString = require('unique-string');
+const User = require("../models/User");
+const Message = require("../models/Message");
+const bcrypt = require("bcryptjs");
+const passport = require("passport");
+const keys = require("../config/keys");
+const uniqueString = require("unique-string");
 
 module.exports = {
-  greet: (req, res) => {
-    res.render('login');
-  },
-  getRegister: (req, res) => {
-    res.render('register');
-  },
-  postNewThread: async (req, res) => {
-    const { recipientId, senderId } = req.body;
-    const { recipient, sender } = await newThread(recipientId, senderId);
-
-    if (!recipient && !sender) {
-      res.status(500).send('Server error');
-    } else {
-      res.status(201).send({recipient, sender});
-    }
-  },
   findUserById: async (req, res) => {
     const { _id } = req.query;
-    const user = await User.findById(_id, '_id name messages');
+    const user = await User.findById(_id, "_id name messages");
     user ? res.status(200).send(user) : res.status(500);
   },
   findById: async (req, res) => {
@@ -38,7 +21,7 @@ module.exports = {
     if (history && history.roomId) {
       ({ roomId } = history);
       messageHistory = await Message.find({
-        _id: { $in: history['messageHistory'] }
+        _id: { $in: history["messageHistory"] }
       });
       res.status(200).send({ name, messageHistory, roomId });
     } else {
@@ -46,12 +29,21 @@ module.exports = {
       res.status(200).send({ name, messageHistory, roomId });
     }
   },
+  updateCurrent: async (req, res) => {
+    const { _id } = req.query;
+    const user = await User.findOneAndUpdate({ _id }, req.body, { new: true });
+    user ? res.status(200).send(user) : res.status(500);
+  },
   findAll: async (req, res) => {
-    const users = await User.find({}, '_id name messages', (err, data) => {
-      if (err) {
-        return;
-      } else return data;
-    });
+    const users = await User.find(
+      {},
+      "_id name messages avatar",
+      (err, data) => {
+        if (err) {
+          return;
+        } else return data;
+      }
+    );
 
     if (users) {
       res.status(200).send(users);
@@ -65,22 +57,22 @@ module.exports = {
 
     //Field checks
     if (!name || !email || !password || !password2) {
-      errors.push({ msg: 'Please fill in all fields' });
+      errors.push({ msg: "Please fill in all fields" });
     }
     if (password !== password2) {
-      errors.push({ msg: 'Passwords do not match' });
+      errors.push({ msg: "Passwords do not match" });
     }
     if (password.length < 6) {
-      errors.push({ msg: 'Password should be at least 6 characters' });
+      errors.push({ msg: "Password should be at least 6 characters" });
     }
 
     if (errors.length > 0) {
-      res.status(400).json({ errors: errors });
+      res.send({ error: errors });
     } else {
       User.findOne({ email: email }).then(user => {
         if (user) {
-          errors.push({ msg: 'Email is already registered' });
-          res.status(400).json({ email: 'Email is already registered' });
+          errors.push({ msg: "Email is already registered" });
+          res.send({ error: errors });
         } else {
           const newUser = new User({
             name,
@@ -96,18 +88,18 @@ module.exports = {
               newUser
                 .save()
                 .then(user => {
-                  const payload = { id: user.id, name: user.name };
-                  jwt.sign(
-                    payload,
-                    keys.secretOrKey,
-                    { expiresIn: 3600 },
-                    (err, token) => {
-                      res.json({
-                        success: true,
-                        token: 'Bearer ' + token
-                      });
-                    }
+                  User.find().then(users =>
+                    users.forEach(user =>
+                      newThread(newUser._id.toString(), user._id.toString())
+                    )
                   );
+                  return user;
+                })
+                .then(user => {
+                  res.send({
+                    success:
+                      "Successfully registered. Please log in. Redirecting now..."
+                  });
                 })
                 .catch(err => console.log(err));
             })
@@ -116,60 +108,34 @@ module.exports = {
       });
     }
   },
+
   login: (req, res, next) => {
-    passport.authenticate('local', {
-      successRedirect: '/dashboard',
-      failureRedirect: '/users/login',
-      failureFlash: true
+    passport.authenticate("local", function(err, user, info) {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.json(info);
+      }
+      req.logIn(user, function(err) {
+        if (err) {
+          return next(err);
+        }
+        return res.json({
+          user: user
+        });
+      });
     })(req, res, next);
   },
   logout: (req, res) => {
-    req.logout();
-    req.flash('success_msg', 'Successfully logged out');
-    res.redirect('login');
+    console.log("logging out");
+    req.logOut();
+    res.redirect("/users/");
   },
-  tokenLogin: (req, res) => {
-    let errors = {};
-    const email = req.body.email;
-    const password = req.body.password;
-
-    User.findOne({ email }).then(user => {
-      if (!user) {
-        errors.email = 'This user does not exist';
-        return res.status(400).json(errors);
-      }
-
-      bcrypt.compare(password, user.password).then(isMatch => {
-        if (isMatch) {
-          const payload = {
-            _id: user._id,
-            name: user.name
-          };
-
-          jwt.sign(
-            payload,
-            keys.secretOrKey,
-            { expiresIn: 3600 },
-            (err, token) => {
-              res.json({
-                success: true,
-                token: 'Bearer ' + token
-              });
-            }
-          );
-        } else {
-          errors.password = 'Incorrect password';
-          return res.status(400).json(errors);
-        }
-      });
-    });
-  },
-  getCurrentUser: (req, res) => {
-    res.json({
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email
-    });
+  session: (req, res) => {
+    if (req.user) {
+      res.send({ user: req.user });
+    } else res.send({ Auth: false });
   }
 };
 
@@ -183,12 +149,13 @@ async function newThread(senderId, recipientId) {
   };
   recipient.messages.set(senderId, history);
   sender.messages.set(recipientId, history);
+
   try {
     recipient.save();
     sender.save();
   } catch {
     console.log(err);
   } finally {
-    return {recipient, sender};
+    return { recipient, sender };
   }
 }
