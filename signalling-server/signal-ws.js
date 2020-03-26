@@ -1,16 +1,10 @@
-//users that connected to the server
-// const { getUser } = require('./util/users');
 
-
-//users that connected to the server
+//users connected to the server
 var users = {};
+
 //when a user connects to our sever
 module.exports = {
   wssHandler: function (connection) {
-
-
-    // socket.join function ==> takes newly logged in user's id & connection info to put in users object
-
 
     //when server gets a message from a connected user
     connection.on('message', function (message) {
