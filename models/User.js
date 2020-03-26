@@ -33,6 +33,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: "",
     required: false
+  },
+  lastPlayed: {
+    type: Number,
+    required: false,
+    default: null
   }
 });
 
