@@ -1,6 +1,7 @@
 const users = [];
 
 const addUser = (socketId, roomId, name, _id) => {
+
   const recipient = users.find(user => user.roomId === roomId);
   let user = { socketId, roomId, name, _id };
 
