@@ -23,14 +23,15 @@ function socketHandler(io, socket) {
       let user = getUser(socket.id);
       if (user) {
         removeUser(socket.id);
-        // socket.to(user.roomId).emit('message', { message: {senderName: 'Admin', message: `${user.name} has left!`, time: Date.now()} });
+        ({ user } = addUser(socket.id, roomid, name, _id));
+      } else {
+        ({ user } = addUser(socket.id, roomid, name, _id));
       }
-      ({ user } = addUser(socket.id, roomid, name, _id));
-      socket.join(user.roomId);
-      socket.to(user.roomId).emit('message', { message: {senderName: 'Admin', message: `${user.name} has joined!`, time: Date.now()} });
-      io.to(user.roomId).emit('roomData', {
-        room: user.roomId,
-        users: getUsersInRoom(user.roomId)
+      const room = user.roomId;
+      socket.join(room);
+      io.to(room).emit('roomData', {
+        room: room,
+        users: getUsersInRoom(room)
       });
     }
     callback();
@@ -52,7 +53,6 @@ function socketHandler(io, socket) {
     }
   });
   socket.on('disconnect', () => {
-    io.emit('updateUsers', [...loggedInUsers]);
     const user = removeUser(socket.id);
     if (user) {
       loggedInUsers.delete(user._id);
